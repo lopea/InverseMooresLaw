@@ -66,7 +66,7 @@ public class Player : MonoBehaviour
         if(IsDead)
          return;
         var colliders = Physics2D.OverlapBoxAll(transform.position - transform.up * 2.5f 
-        , new Vector2(4.8f, .2f),0 ,_heightMask);
+        , new Vector2(4f, .2f),0 ,_heightMask);
         
         if(colliders.Length != 0)
         {
@@ -169,9 +169,12 @@ public class Player : MonoBehaviour
             IsDead = true;
             _recorder.StopRecording();
         }
-
+        else if(other.gameObject.tag == "Floor" && Vector2.Dot(((Vector2)transform.position - other.GetContact(0).point).normalized, Vector2.up) < 0)
+        {
+           _rigidbody.velocity = new Vector2(0, _rigidbody.velocity.y);
+        }
     }
-    
+
     void OnCollisionExit2D(Collision2D other)
     {
         if(IsDead)

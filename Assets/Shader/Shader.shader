@@ -8,7 +8,7 @@
     {
         // No culling or depth
         Cull Off ZWrite Off ZTest Always
-
+        Tags {"RenderPipeline" = "UniversalPipeline"}
         Pass
         {
             CGPROGRAM
@@ -44,7 +44,7 @@
                 i.uv = floor(i.uv * 200) /200;
                 fixed4 col = tex2D(_MainTex, i.uv);
                 // just invert the colors
-                //col.rgb = 1 - col.rgb;
+                col.rgb = 1 - col.rgb;
                 return col;
             }
             ENDCG
