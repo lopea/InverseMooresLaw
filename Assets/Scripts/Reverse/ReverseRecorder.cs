@@ -47,7 +47,7 @@ public class ReverseRecorder : MonoBehaviour
         {
             _timer += Time.deltaTime;
 
-            if(_timer > 0.1f)
+            if(_timer > 0.05f)
             {
                 AddSnapshot();
                 _timer = 0;
@@ -77,7 +77,7 @@ public class ReverseRecorder : MonoBehaviour
 
         int lowerIndex = (int)((_snapshots.Count - 1) * position);
         float t = ((_snapshots.Count - 1) * position) - lowerIndex;
-        print("lower " + lowerIndex + " T " + t);
+        
         return Vector3.Lerp(_snapshots[lowerIndex].position, _snapshots[lowerIndex + 1].position, t);
         
         

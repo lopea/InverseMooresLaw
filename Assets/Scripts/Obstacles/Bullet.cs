@@ -4,32 +4,63 @@ using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    [SerializeField]
-    private float speed = 10;
+
+    private Light _light;
+
+    private float t;
     
     [SerializeField]
-    private ParticleSystem onDeathParticle;
+    private BulletParticle onDeathParticle;
 
     public Vector2 direction;
 
+    public float SlowSpeed, FastSpeed;
     
+    public Color MainColor = Color.cyan;
+
+    public Color SlowColor, FastColor;
+
+
     
     void Awake()
     {
-      Destroy(gameObject, 5);  
+        
+      _light = GetComponentInChildren<Light>();
     }
+
+    void Kill()
+    {
+        Destroy(gameObject);
+        var particle = Instantiate(onDeathParticle, transform.position, transform.rotation);
+        particle.SlowColor = SlowColor;
+        particle.FastColor = FastColor;
+        Destroy(particle.gameObject, 1);
+    }
+
+    
+    
     void Update()
     {
+        var color =  (ComputerStateManager.CurrentState == ComputerState._8bit) ? SlowColor : FastColor;
+        GetComponent<Renderer>().material.SetColor("_EmissionColor", color);
+        _light.color  = color;
+        
+        var speed = (ComputerStateManager.CurrentState == ComputerState._8bit) ? SlowSpeed : FastSpeed;
         if(direction != Vector2.zero)
         {
-            transform.Translate(direction * speed * Time.deltaTime, Space.World);
+            var newDirection = Player.playerTransform.position - transform.position;
+            transform.Translate(((Vector2)newDirection.normalized * 0.5f + direction) * speed * Time.deltaTime, Space.World);
         }  
+
+        if(t > 5)
+        {
+            Kill();
+        }
+         t+= Time.deltaTime;
     }
 
     void OnCollisionEnter2D(Collision2D other)
     {
-        Destroy(gameObject);
-        var particle = Instantiate(onDeathParticle, transform.position, transform.rotation);
-        Destroy(particle.gameObject, 1);
+        Kill();
     }
 }

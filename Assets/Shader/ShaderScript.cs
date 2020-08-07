@@ -12,6 +12,11 @@ public class ShaderScript : MonoBehaviour
 
     void OnRenderImage(RenderTexture src, RenderTexture dest)
     {
-        Graphics.Blit(src, dest, mat);
+        if(ComputerStateManager.CurrentState == ComputerState._8bit)
+            Graphics.Blit(src, dest, mat);
+        else
+        {
+            Graphics.Blit(src,dest);
+        }
     }
 }

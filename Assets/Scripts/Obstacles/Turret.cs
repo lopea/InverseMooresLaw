@@ -8,11 +8,23 @@ public class Turret : MonoBehaviour
     private float _timer = 0;
 
     [SerializeField]
-    private float fireRate = 1;
+    private float fireRate = 0.01f;
+
+    [SerializeField]
+    private float slowFireRate = 2;
 
     [SerializeField]
     private Bullet bullet;
 
+    [SerializeField]
+    private float slowSpeed = 10, fastSpeed = 100;
+
+    [SerializeField]
+    float maxDistance = 100;
+
+
+    [SerializeField]
+    private Color fastColor = Color.cyan, slowColor = Color.red;
 
     float GetAngle(Vector2 vector)
     {
@@ -30,19 +42,24 @@ public class Turret : MonoBehaviour
             if(_timer >= fireRate)
             {
                 var bulletInstance = Instantiate(bullet, transform.position, transform.rotation);
+                bulletInstance.SlowSpeed = slowSpeed;
+                bulletInstance.FastSpeed = fastSpeed;
+                bulletInstance.FastColor = fastColor;
+                bulletInstance.SlowColor = slowColor;
                 bulletInstance.direction = (Player.playerTransform.position - transform.position).normalized;
                 _timer = 0;
             }
         }
+
+        GetComponent<Renderer>().material.color = (ComputerStateManager.CurrentState == ComputerState._8bit) ? slowColor : fastColor;
     }
     void FixedUpdate()
     {
-        var hit = Physics2D.Raycast(transform.position, (Player.playerTransform.position - transform.position).normalized);
+        var hit = Physics2D.Raycast(transform.position, (Player.playerTransform.position - transform.position).normalized,maxDistance);
 
         if(hit.collider != null && hit.collider.tag == "Player")
         {
             _active = true;
-            print ("Hit!");
         }
         else
         {

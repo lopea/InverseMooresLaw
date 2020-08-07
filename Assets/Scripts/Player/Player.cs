@@ -2,7 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum KillType
+{
+    Bullet,
+    Fall,
+    Spike,
+    Lazer,
+    Saw
+}
 
+public delegate void OnKillFunc(KillType type, int count);
 [RequireComponent(typeof(Rigidbody2D), typeof(ReverseRecorder))]
 public class Player : MonoBehaviour
 {
@@ -20,6 +29,7 @@ public class Player : MonoBehaviour
     private LayerMask _heightMask;
     private Rigidbody2D _rigidbody;
 
+    private KillType _lastKill;
     [SerializeField]
     private float maxVelocity = 10;
 
@@ -29,10 +39,24 @@ public class Player : MonoBehaviour
     [SerializeField]
     private float jumpHeight = 20;
 
+    [SerializeField]
+    private float yOnDeath = -20;
+
     
     public bool IsDead{get; private set;}
+    public bool IsWallJumping => _allowWallJump;
+    public bool IsJumping{get; private set;}
+
+    public bool IsGrounded =>_isGrounded;
+
     public Vector2 Velocity => _rigidbody.velocity;
 
+    public bool FollowY{get; private set;}
+
+    public int DeathCount{get; private set;}
+
+    public event OnKillFunc AfterRewindEvent;
+    
     private static Player _current;
 
     
@@ -59,6 +83,7 @@ public class Player : MonoBehaviour
         _startPos = transform.position;
         _recorder = GetComponent<ReverseRecorder>();
         _recorder.StartRecording();
+        DeathCount = 0;
     }
 
     void FixedUpdate()
@@ -68,6 +93,7 @@ public class Player : MonoBehaviour
         var colliders = Physics2D.OverlapBoxAll(transform.position - transform.up * 2.5f 
         , new Vector2(4f, .2f),0 ,_heightMask);
         
+        
         if(colliders.Length != 0)
         {
             foreach(var collider in colliders)
@@ -75,6 +101,8 @@ public class Player : MonoBehaviour
                 if(!_isGrounded)
                 {
                     _isGrounded = true;
+                    IsJumping = false;
+                    FollowY = false;
                     _slideAmount = _rigidbody.velocity.normalized.x * 2;
                 }
             }
@@ -84,40 +112,72 @@ public class Player : MonoBehaviour
             _isGrounded = false;
         }
 
-
+        var hit = Physics2D.Raycast(transform.position, Vector2.down,500, _heightMask);
+        if(hit.distance > 20)
+        {
+            FollowY = true;
+        }
         
+    }
+
+
+    KillType GetKillType(string name)
+    {
+        //call me yandere-dev from now on 'cuz holy shit this is bad.
+        if(name.Contains("bullet"))
+        {
+            return KillType.Bullet;
+        }
+        else if(name.Contains("Saw"))
+        {
+            return KillType.Saw;
+        }
+        else if(name.Contains("Spike"))
+        {
+            return KillType.Spike;
+        }
+        else if(name.Contains("Lazer"))
+        {
+            return KillType.Lazer;
+        }
+        return KillType.Fall;
     }
     void Update()
     {
+        
         if(IsDead)
         {
             transform.position = _recorder.GetPosition(_deadTimer);
             transform.rotation = _recorder.GetRotation(_deadTimer);
             _deadTimer -= Time.deltaTime /2;
+            
             if(_deadTimer <= 0)
             {
                 IsDead = false;
                 _deadTimer = 1;
                 _recorder.StartRecording();
+                AfterRewindEvent?.Invoke(_lastKill, DeathCount);
             }
             
         }
         else
         {
             float movement = Input.GetAxis("Horizontal") * maxVelocity;
-
+            if(Input.GetKeyDown(KeyCode.Q))
+            {
+                ComputerStateManager.CurrentState = (ComputerState)(((int)ComputerStateManager.CurrentState + 1) % 2); 
+            }
             if(_isGrounded)
             {
+
                 //ground movement
                 _rigidbody.velocity = new Vector2(movement, _rigidbody.velocity.y);
-
-
 
                 //jumping
                 if(Input.GetButtonDown("Jump"))
                 {
                     _rigidbody.AddForce(Vector2.up * jumpHeight, ForceMode2D.Impulse);
-
+                    IsJumping = true;
 
                 }
 
@@ -145,6 +205,12 @@ public class Player : MonoBehaviour
                 } 
 
             }
+            if(transform.position.y < yOnDeath)
+            {
+                IsDead = true;
+                _lastKill = KillType.Fall;
+                _recorder.StopRecording();
+            }
         }
         
     }
@@ -163,10 +229,13 @@ public class Player : MonoBehaviour
             _wallJumpTimer = 0;
             _rigidbody.gravityScale *= 0.1f;
             _rigidbody.velocity = new Vector2(_rigidbody.velocity.x, 0);
+            FollowY = true;
         }
         else if(other.gameObject.tag == "Danger")
         {
             IsDead = true;
+            DeathCount ++;
+            _lastKill = GetKillType(other.transform.name);
             _recorder.StopRecording();
         }
         else if(other.gameObject.tag == "Floor" && Vector2.Dot(((Vector2)transform.position - other.GetContact(0).point).normalized, Vector2.up) < 0)
@@ -187,6 +256,7 @@ public class Player : MonoBehaviour
                 
         }
     }
+
     void OnDrawGizmos()
     {
         Gizmos.color = Color.black;
